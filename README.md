@@ -14,5 +14,5 @@ Github does not allow large files, so I added them to .gitignore. Go sure you ha
 
 ## Data_Iterator.py
 - Contains generator function yielding positive or negative samples for desired dataset. The original training sets only contain positive samples. To be able to effectively train our model we also need negative samples. Current policy of generating negative samples is to simply choose a random document (not the true one) for a query.
-- This function should not be used during training, as reading from files is slow. Instead, we should only read from it once to compute tf-idf vectors, embeddings etc. which we then save in a file or simply keep in memory
+- This function should not be used during training, as reading from files might be slow. Instead, we should only read from it once to compute tf-idf vectors, embeddings etc. which we then save in a file or simply keep in memory
 
