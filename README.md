@@ -8,3 +8,5 @@ Go sure following files are in the directory:
 - msmarco-test2020-queries.tsv
 - queries.docdev.tsv
 - queries.doctrain.tsv
+
+Github does not allow large files, so I added them to .gitignore. Go sure you have them on your local device.
