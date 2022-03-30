@@ -81,7 +81,7 @@ def sample_generator(set: str, positive: bool, read_from_gzip: bool = False) -> 
     qtexts.close()
     docs.close()
 
-
+#TESTING CODE
 if __name__ == "__main__":
     start = time.time()
     # Example for positive samples
