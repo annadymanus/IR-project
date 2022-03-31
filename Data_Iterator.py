@@ -28,25 +28,25 @@ def sample_generator(set: str, positive: bool, read_from_gzip: bool = False) -> 
 
     # Load Query Relations into dictionary
     qrels = {}
-    with open(qrels_filename, "r") as qrels_file:
+    with open(qrels_filename, "r", encoding="utf-8") as qrels_file:
         qrels_reader = csv.reader(qrels_file, delimiter=" ")
         for row in qrels_reader:
             qrels[row[0]] = row[2]
 
     # Load Document offsets into dictionary
     lookups = {}
-    with open(docs_lookup_filename, "r") as lookup_file:
+    with open(docs_lookup_filename, "r", encoding="utf-8") as lookup_file:
         lookup_reader = csv.reader(lookup_file, delimiter="\t")
         for row in lookup_reader:
             lookups[row[0]] = int(
                 row[1]
             )  # trec format row (row[2] would be for tsv format row)
 
-    qtexts = open(qtext_filename, "r")    
+    qtexts = open(qtext_filename, "r", encoding="utf-8")    
     if read_from_gzip:
         docs = gzip.open(full_docs_filename, "r")
     else:
-        docs = open(full_docs_filename, "r", encoding="utf_8")
+        docs = open(full_docs_filename, "r", encoding="utf-8")
     
     query_reader = csv.reader(qtexts, delimiter="\t")    
     for row in query_reader:

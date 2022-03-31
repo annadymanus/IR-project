@@ -68,11 +68,8 @@ def write_dataset(samples: List[Tuple[str,str,bool]], filename: str):
 
 #TESTING CODE
 if __name__ == "__main__":
-    positive_samples = iter(Data_Iterator.sample_generator("train", True))
-    generated_samples = []
-    num_samples = 2000
-    for i, sample in enumerate(tqdm(positive_samples, total=num_samples, desc="Load Data")):            
-        if i >= num_samples:
-            break
+    positive_samples = list(Data_Iterator.sample_generator("train", True))
+    generated_samples = []    
+    for sample in tqdm(positive_samples, desc="Load Data"):
         generated_samples.append(sample)    
-    write_dataset(generated_samples, "test.csv")
+    write_dataset(generated_samples, "positive_train_data.csv")
