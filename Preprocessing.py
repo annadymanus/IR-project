@@ -16,10 +16,10 @@ def get_avg_embedding(spacy_doc):
     """Returns the average of all word embeddings of the document"""
     return sum([token.vector for token in spacy_doc])/len(spacy_doc)
    
-def preprocess(samples: List[Tuple[str,str,bool]], num_chunks=20):
+def preprocess(samples: List[Tuple[str,str,str,str,bool]], num_chunks=20):
     """ 
     Create Tf-Idf and embedding vectors for queries and documents.
-    Returns List of Tuples of shape (Query Tf-Idf, Query Embedding, Document Tf-Idf, Document Embedding, Label)
+    Returns List of Tuples of shape (Query ID, Doc ID, Query Tf-Idf, Query Embedding, Document Tf-Idf, Document Embedding, Label)
     """ 
     def remove_urls(text: str) -> str:
         """Removes url strings"""
@@ -28,8 +28,8 @@ def preprocess(samples: List[Tuple[str,str,bool]], num_chunks=20):
     #Transform from [[query0, doc0], [query1, doc1],...] to [query0, doc0, query1, doc1, ...]
     raw_texts = []
     for sample in samples:
-        query = remove_urls(sample[0])
-        doc = remove_urls(sample[1])
+        query = remove_urls(sample[2])
+        doc = remove_urls(sample[3])        
         raw_texts.extend([query, doc])
 
     #Spacy Pipeline: Tokenize, Lemmatize, Vectorize (Embeddings), Extract Entities (not yet working, missing knowledge base)  
@@ -44,6 +44,7 @@ def preprocess(samples: List[Tuple[str,str,bool]], num_chunks=20):
         if os.path.isfile(f'temp_{i}.pickle'): continue #Just in case stuff crashes.
         q_and_docs_chunk = []
         nlp = spacy.load("en_core_web_md")
+        nlp.max_lenth = 2000000
         nlp.disable_pipes("parser", "ner") #remove pipe we do not need            
         for item in tqdm(nlp.pipe(chunk, batch_size=32, n_process=16), total=len(chunk), desc="NLP Pipe"):
             #Only save the relevant stuff to prevent out of memory issues. Spacy.doc and Spacy.token are too large and contain stuff we dont need
@@ -67,13 +68,15 @@ def preprocess(samples: List[Tuple[str,str,bool]], num_chunks=20):
 
     #Output Tuples
     processed_samples = []
-    for i in range(len(samples)):        
+    for i in range(len(samples)): 
+        qid = samples[i][0]
+        docid = samples[i][1]
         label = np.array([samples[i][-1]])
         query_tf_idf = tf_idfs[2*i] #extract tfidf vector of query
         doc_tf_idf = tf_idfs[2*i+1] #extract tfidf vector of document
         avg_query_emb = q_and_docs_embeddings[2*i]
         avg_doc_emb = q_and_docs_embeddings[2*i+1]
-        processed_samples.append((query_tf_idf, avg_query_emb, doc_tf_idf, avg_doc_emb, label))
+        processed_samples.append((qid, docid, query_tf_idf, avg_query_emb, doc_tf_idf, avg_doc_emb, label))
     return processed_samples
 
 def write_dataset(processeed_samples: List[Tuple], filename: str):
@@ -82,9 +85,9 @@ def write_dataset(processeed_samples: List[Tuple], filename: str):
         pickle.dump(processeed_samples, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
-    samples = Data_Iterator.sample_generator("train", positive=True)
+    samples = Data_Iterator.sample_generator("test", positive=True)
     generated_samples = []    
     for sample in tqdm(samples, desc="Load Data"):
         generated_samples.append(sample)
-    preprocessed_samples = preprocess(generated_samples, num_chunks=20)
-    write_dataset(preprocessed_samples, "pos_train_data.pickle")
+    preprocessed_samples = preprocess(generated_samples, num_chunks=5)
+    write_dataset(preprocessed_samples, "test_data.pickle")

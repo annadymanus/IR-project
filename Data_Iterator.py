@@ -40,6 +40,7 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
             lookups[row[0]] = int(
                 row[1]
             )  # trec format row (row[2] would be for tsv format row)
+    lookups_items = list(lookups.items())
 
     qtexts = open(qtext_filename, "r", encoding="utf-8")    
     docs = open(full_docs_filename, "r", encoding="utf-8")
@@ -63,9 +64,9 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
                 docs.seek(offset)
             else:
                 # Select some random other document
-                random_entry = random.choice(list(lookups.items()))
+                random_entry = random.choice(lookups_items)
                 while random_entry[0] == docid:
-                    random_entry = random.choice(list(lookups.items()))
+                    random_entry = random.choice(lookups_items)
                 offset = random_entry[1]
                 docid = random_entry[0]
                 docs.seek(offset)
@@ -79,7 +80,7 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
                     doc_text += line
                 if "<TEXT>" in line:
                     is_text = True
-            yield (qtext, doc_text, label)
+            yield (qid, docid, qtext, doc_text, label)
     qtexts.close()
     docs.close()
 
