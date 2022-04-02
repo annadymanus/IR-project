@@ -1,0 +1,35 @@
+import pickle
+from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+def create_data_dict(): #create dict {queryid: querytfidf, docid, doctfidf...}
+
+    test_data = pickle.load(open('test_data.pickle', 'rb'))
+    dict_data = defaultdict(list)
+    for data in test_data:
+        dict_value = []
+        for i in range(len(data)):
+            dict_value.append(data[i])
+        dict_data[data[0]].append(dict_value[1:])
+    return dict_data
+
+def compute_cosine_similarity(dict_data):
+
+    for key in dict_data.keys():
+        cosine_results = []
+        for document in dict_data[key]: #compute cosine similarity for the query with every document of the query
+            query_tfidf = document[1].reshape(1, -1) #reshape to "fake" 2Dvector [] --> [[]]
+            docu_tfidf = document[3].reshape(1, -1) #reshape to "fake" 2Dvector [] --> [[]]
+            cos_val = cosine_similarity(query_tfidf, docu_tfidf)
+            cosine_results.append(cos_val)
+            dict_data[key].append(cosine_results)
+
+    with open('cosine_similarity_dict', 'wb') as handle: #save cosinesimilarity results to a file using pickle
+        pickle.dump(dict_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
+if __name__ == "__main__":
+    dict_data = create_data_dict()
+    compute_cosine_similarity(dict_data)
