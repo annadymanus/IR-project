@@ -9,25 +9,22 @@ def print_dataset(number_of_lines):
     for line in f: #line is type python_bytes
         if(i< number_of_lines):
             line_to_string = line.decode("utf-8")
-            if(line_to_string == "\n"):
-                number_of_texts += 1
             print(line_to_string[:-1])
             i+=1
         else:
             break
     f.close()
-    print("Number of total printed texts: ", number_of_texts)
-
 
 def print_n_texts(number_of_texts):
     file_name = 'msmarco-docs.trec.gz'
     f = gzip.open(file_name, 'r') #read from a buffer so we never load the 8 GB in memoryç
     number_of_texts_counter = 0
-    for line in f: #line is type python_bytes
+    for line in f:
         if(number_of_texts_counter < number_of_texts):
             line_to_string = line.decode("utf-8")
-            if(line_to_string == "\n"):
+            if(line_to_string == "\n"): #found the end of a text
                 number_of_texts_counter += 1
+                print("\n #################### END OF THE TEXT ####################")
             print(line_to_string[:-1])
         else:
             break
