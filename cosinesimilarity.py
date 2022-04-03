@@ -22,7 +22,12 @@ def compute_cosine_similarity(dict_data):
             query_tfidf = document[1].reshape(1, -1) #reshape to "fake" 2Dvector [] --> [[]]
             docu_tfidf = document[3].reshape(1, -1) #reshape to "fake" 2Dvector [] --> [[]]
             cos_val = cosine_similarity(query_tfidf, docu_tfidf)
-            cosine_results.append([document, cos_val])
+            if float(cos_val) >= 0.5:
+                cosine_results.append([document, cos_val, 1])
+                print('RELEVANT')
+            else:
+                cosine_results.append([document, cos_val, 0])
+                print('NON RELEVANT')
         dict_cosine_val[key] = cosine_results
         print("################## QUEST " + key + " SUCCESFULL ##################")
     with open('cosine_similarity_TEST_results', 'wb') as handle: #save cosinesimilarity results to a file using pickle
