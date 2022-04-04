@@ -23,7 +23,7 @@ def compute_cosine_similarity(dict_data):
             docu_tfidf = document[3].reshape(1, -1) #reshape to "fake" 2Dvector [] --> [[]]
             cos_val = cosine_similarity(query_tfidf, docu_tfidf)
             cosine_results.append([document[0], cos_val, document[-1]]) #add actual label from the input data (important for evaluation metrics)
-        dict_cosine_val[key] = cosine_results.sorted(key=lambda x: x[1]) #sort doctuments by their cosine similarity for each key
+        dict_cosine_val[key] = sorted(cosine_results, key=lambda x: x[1]) #sort doctuments by their cosine similarity for each key
 
         print("################## QUEST " + key + " SUCCESFULL ##################")
     with open('cosine_similarity_TEST_results', 'wb') as handle: #save cosinesimilarity results to a file using pickle
