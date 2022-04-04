@@ -1,6 +1,8 @@
 import pickle
 from collections import defaultdict
+import sklearn
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import average_precision_score
 import numpy as np
 
 def create_data_dict(): #create dict {queryid: querytfidf, docid, doctfidf...}
@@ -29,8 +31,18 @@ def compute_cosine_similarity(dict_data):
     with open('cosine_similarity_TEST_results', 'wb') as handle: #save cosinesimilarity results to a file using pickle
         pickle.dump(dict_cosine_val, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
+def get_avg_precision(filename):
+    cosine_dict = pickle.load(open(filename, 'rb'))
+    avg_prec = 0
+    for key, cosine_tuples in cosine_dict.items():        
+        labels = np.array([x[-1] for x in cosine_tuples]).squeeze()
+        sims = np.array([x[1] for x in cosine_tuples]).squeeze()        
+        prec = average_precision_score(labels, sims)
+        print(key, prec)
+        avg_prec += prec/len(cosine_dict)
+    print("AVERAGE PREC: ", avg_prec)
 
 if __name__ == "__main__":
     dict_data = create_data_dict()
     compute_cosine_similarity(dict_data)
+    get_avg_precision('cosine_similarity_TEST_results')

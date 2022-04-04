@@ -30,7 +30,7 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
     with open(qrels_filename, "r", encoding="utf-8") as qrels_file:
         qrels_reader = csv.reader(qrels_file, delimiter=" ")
         for row in qrels_reader:
-            qrels[row[0]].append((row[2], row[3])) #Document ID and Label (label only relevant in testset)
+            qrels[row[0]].append((row[2], int(row[3]))) #Document ID and Label (label only relevant in testset)
 
     # Load Document offsets into dictionary
     lookups = {}
