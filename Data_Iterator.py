@@ -1,36 +1,27 @@
 import csv
 from collections import defaultdict
 import random
-from typing import Tuple
+from typing import Tuple, List
 import time
+import pickle
 
-def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
-    """
-    A generator function yielding positive or negative data samples from the training or development set. Returns a Tuple containing the query text, document text, and relevance.
-    Samples are generated in order of the queries listed in queries.doctrain.tsv or queries.doctrain.tsv. For positive samples, the matching document is chosen. For negative samples, a random other
-    document is selected. If set is set to "test", parameter "positive" is irrelevant.
-    """    
+
+def write_dataset(processeed_samples: List[Tuple], filename: str):
+    """Saves processed_samples to .pickle file"""
+    with open(filename, 'wb') as handle:
+        pickle.dump(processeed_samples, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+def get_sample_texts(filename: str):
+    """Load dataset with according texts. Yields tuples of shape (qid, docid, query_text, doc_text, label)"""
     docs_lookup_filename = "msmarco-docs-lookup.tsv"
     full_docs_filename = "fulldocs-new.trec"
 
-    if set == "train":
+    if "train" in filename:
         qtext_filename = "queries.doctrain.tsv"
-        qrels_filename = "msmarco-doctrain-qrels.tsv"
-
-    elif set == "dev":
+    elif "dev" in filename:
         qtext_filename = "queries.docdev.tsv"
-        qrels_filename = "msmarco-docdev-qrels.tsv"
-
-    elif set == "test":
+    elif "test" in filename:
         qtext_filename = "msmarco-test2019-queries.tsv"
-        qrels_filename = "qrels-docs.tsv"
-
-    # Load Query Relations into dictionary
-    qrels = defaultdict(list)    
-    with open(qrels_filename, "r", encoding="utf-8") as qrels_file:
-        qrels_reader = csv.reader(qrels_file, delimiter=" ")
-        for row in qrels_reader:
-            qrels[row[0]].append((row[2], int(row[3]))) #Document ID and Label (label only relevant in testset)
 
     # Load Document offsets into dictionary
     lookups = {}
@@ -42,10 +33,16 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
             )  # trec format row (row[2] would be for tsv format row)
     lookups_items = list(lookups.items())
 
-    qtexts = open(qtext_filename, "r", encoding="utf-8")    
+    # Load Query Relations into dictionary
+    qrels = defaultdict(list)    
+    pairs = pickle.load(open(filename, 'rb'))
+    for pair in pairs:
+        qrels[pair[0]].append((pair[1], pair[2]))
+
+    qtexts = open(qtext_filename, "r", encoding="utf-8")
     docs = open(full_docs_filename, "r", encoding="utf-8")
     
-    query_reader = csv.reader(qtexts, delimiter="\t")    
+    query_reader = csv.reader(qtext, delimiter="\t")    
     for row in query_reader:
         qid = row[0]
         qtext = row[1]
@@ -55,21 +52,10 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
         
         for relation in relations: #In test set each query has multiple docs
             docid = relation[0]
-            if set == "test":
-                label = False if relation[1] == 0 else True #According to article, human rating 2 is considered equivalent to 1
-            else:
-                label = positive
-            if label == True or set == "test":
-                offset = lookups[docid]
-                docs.seek(offset)
-            else:
-                # Select some random other document
-                random_entry = random.choice(lookups_items)
-                while random_entry[0] == docid:
-                    random_entry = random.choice(lookups_items)
-                offset = random_entry[1]
-                docid = random_entry[0]
-                docs.seek(offset)
+            label = relation[1]            
+            offset = lookups[docid]
+            docs.seek(offset)            
+            
             doc_text = ""
             is_text = False
             while True:
@@ -80,20 +66,63 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
                     doc_text += line
                 if "<TEXT>" in line:
                     is_text = True
-            yield (qid, docid, qtext, doc_text, label)
+            yield (qid, docid, qtext, doc_text, label)            
     qtexts.close()
     docs.close()
+        
+def create_blank_dataset(set: str):
+    """Creates balanced dataset and saves List of (query id, document id, label) tuples to .pickle file. Parameter "set" can be either "train", "dev" or "test"."""    
+    if set == "test":
+        samples = list(sample_generator(set))
+    else:
+        negative_samples = list(sample_generator(set, False))
+        positive_samples = list(sample_generator(set, True))
+        samples = random.shuffle(negative_samples + positive_samples)
+    
+    write_dataset(samples, f"{set}_data.pickle")
+
+def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
+    """
+    A generator function yielding positive or negative data samples from the training, development or test set. Returns a Tuple containing the query id, document id, and relevance.
+    Samples are generated in order of the queries listed in the queries.tsv files. For positive samples, the matching document is chosen. For negative samples, a random other
+    document is selected. If set is set to "test", parameter "positive" is irrelevant.
+    """    
+    docs_lookup_filename = "msmarco-docs-lookup.tsv"
+
+    if set == "train":
+        qrels_filename = "msmarco-doctrain-qrels.tsv"
+
+    elif set == "dev":
+        qrels_filename = "msmarco-docdev-qrels.tsv"
+
+    elif set == "test":
+        qrels_filename = "qrels-docs.tsv"
+    
+    #Get all Doc Ids
+    docids = {}
+    with open(docs_lookup_filename, "r", encoding="utf-8") as lookup_file:
+        lookup_reader = csv.reader(lookup_file, delimiter="\t")
+        for row in lookup_reader:
+            docids.add(row[0])
+    
+    qrels = open(qrels_filename, "r", encoding="utf-8")  
+    qrels_reader = csv.reader(qrels, delimiter="\t")    
+    for row in qrels_reader:
+        qid = row[0]
+        docid = row[2]
+        label = int(row[3])
+        if set != "test" and not positive:
+            random_docid = random.choice(docids)
+            while random_docid == docid:
+                random_docid = random.choice(docids)
+            docid = random_docid
+            label = False                    
+        yield (qid, docid, label)        
+    qrels.close()
+
 
 #TESTING CODE
 if __name__ == "__main__":
-    start = time.time()
-    # Example for positive samples
-    positive_samples = iter(sample_generator("train", True))
-    for i in range(10):
-        next(positive_samples)
-    # Example for positive samples
-    negative_samples = iter(sample_generator("train", False))
-    for i in range(10):
-        next(negative_samples)
-    end = time.time()
-    print("TIME Uncompressed: ", end-start)
+    create_blank_dataset("train")
+    data = get_sample_texts("train")
+    
