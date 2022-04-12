@@ -70,32 +70,32 @@ def get_sample_texts(filename: str):
     qtexts.close()
     docs.close()
         
-def create_blank_dataset(set: str):
+def create_blank_dataset(d_set: str):
     """Creates balanced dataset and saves List of (query id, document id, label) tuples to .pickle file. Parameter "set" can be either "train", "dev" or "test"."""    
     if set == "test":
-        samples = list(sample_generator(set))
+        samples = list(sample_generator(d_set))
     else:
-        negative_samples = list(sample_generator(set, False))
-        positive_samples = list(sample_generator(set, True))
+        negative_samples = list(sample_generator(d_set, False))
+        positive_samples = list(sample_generator(d_set, True))
         samples = random.shuffle(negative_samples + positive_samples)
     
-    write_dataset(samples, f"{set}_data.pickle")
+    write_dataset(samples, f"{d_set}_data.pickle")
 
-def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
+def sample_generator(d_set: str, positive: bool = True) -> Tuple[str, str, bool]:
     """
     A generator function yielding positive or negative data samples from the training, development or test set. Returns a Tuple containing the query id, document id, and relevance.
     Samples are generated in order of the queries listed in the queries.tsv files. For positive samples, the matching document is chosen. For negative samples, a random other
-    document is selected. If set is set to "test", parameter "positive" is irrelevant.
+    document is selected. If d_set is set to "test", parameter "positive" is irrelevant.
     """    
     docs_lookup_filename = "msmarco-docs-lookup.tsv"
 
-    if set == "train":
+    if d_set == "train":
         qrels_filename = "msmarco-doctrain-qrels.tsv"
 
-    elif set == "dev":
+    elif d_set == "dev":
         qrels_filename = "msmarco-docdev-qrels.tsv"
 
-    elif set == "test":
+    elif d_set == "test":
         qrels_filename = "qrels-docs.tsv"
     
     #Get all Doc Ids
@@ -111,7 +111,7 @@ def sample_generator(set: str, positive: bool = True) -> Tuple[str, str, bool]:
         qid = row[0]
         docid = row[2]
         label = int(row[3])
-        if set != "test" and not positive:
+        if d_set != "test" and not positive:
             random_docid = random.choice(docids)
             while random_docid == docid:
                 random_docid = random.choice(docids)
