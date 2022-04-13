@@ -12,7 +12,15 @@ Go sure following files are in the directory:
 
 Github does not allow large files, so I added them to .gitignore. Go sure you have them on your local device.
 
-## Data_Iterator.py
-- Contains generator function yielding positive or negative samples for desired dataset. The original training sets only contain positive samples. To be able to effectively train our model we also need negative samples. Current policy of generating negative samples is to simply choose a random document (not the true one) for a query.
-- This function should not be used during training, as reading from files might be slow. Instead, we should only read from it once to compute tf-idf vectors, embeddings etc. which we then save in a file or simply keep in memory
+## How to get your DataSet
+I simplified the data generation process to allow the generation of specific preprocessed data. 
+
+1. At first, create a blank dataset consisting of (queryID, docID, label) tuples by running:
+  ´´´python
+  create_blank_dataset("train")
+  ´´´
+  Replace "train" by "dev" or "test" to get your desired dataset. The function will then generate a balanced dataset containing positive and negative samples. The function saves this dataset to a file named "train_data.pickle" (or "dev_data.pickle" or "test_data.pickle" respectively)
+
+
+For instance, in order to get a dataset with Tf-Idf vectors, one simply needs to call
 
