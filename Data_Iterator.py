@@ -6,6 +6,7 @@ import time
 import pickle
 
 
+
 def write_dataset(processeed_samples: List[Tuple], filename: str):
     """Saves processed_samples to .pickle file"""
     with open(filename, 'wb') as handle:
@@ -72,6 +73,7 @@ def get_sample_texts(filename: str):
         
 def create_blank_dataset(d_set: str):
     """Creates balanced dataset and saves List of (query id, document id, label) tuples to .pickle file. Parameter "set" can be either "train", "dev" or "test"."""    
+    random.seed(42)
     if set == "test":
         samples = list(sample_generator(d_set))
     else:
@@ -120,9 +122,4 @@ def sample_generator(d_set: str, positive: bool = True) -> Tuple[str, str, bool]
         yield (qid, docid, label)        
     qrels.close()
 
-
-#TESTING CODE
-if __name__ == "__main__":
-    create_blank_dataset("train")
-    data = get_sample_texts("train")
     

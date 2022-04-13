@@ -31,7 +31,7 @@ def get_output_tuples(representation: List, samples: List[Tuple[str,str,str,str,
         doc_repr= representation[2*i+1] #extract representarion vector of document
         output_tuples.append((qid, docid, query_repr, doc_repr, label))
     
-def first_preprocess(samples: List[Tuple[str,str,str,str,bool]], num_chunks=20, remove_cache=False):
+def first_preprocess(samples: List[Tuple[str,str,str,str,bool]], num_chunks=20):
     """ 
     Returns List of Tuples of shape (Query ID, Doc ID, Query Tf-Idf, Query Embedding, Document Tf-Idf, Document Embedding, Label)
     """ 
@@ -48,8 +48,10 @@ def first_preprocess(samples: List[Tuple[str,str,str,str,bool]], num_chunks=20, 
 
     return raw_texts
 
-def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = False, mode="lemmatize"):
+def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = True, mode="lemmatize"):
     '''uses spacy to tokenize and lemmatize'''
+    if remove_cache:
+        os.remove("temp_token*.pickle")        
 
     raw_texts_list = split(raw_texts, num_chunks)
     for i, chunk in enumerate(raw_texts_list):
@@ -72,16 +74,14 @@ def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = Fa
     q_and_docs = []
     for i in tqdm(range(len(raw_texts_list)), desc="Load temp files"):
         q_and_docs.extend(pickle.load(open(f"temp_token_{i}.pickle", "rb" )))
-    if remove_cache:
-        os.remove("temp_token*.pickle")
     return q_and_docs
 
-def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=False):
+def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
     '''
     Create Tf-Idf for queries and documents.
     '''
     reshaped_clean_samples = first_preprocess(samples)
-    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize")
+    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache)
 
     #Get TFidf Vectors
     vectorizer = TfidfVectorizer(tokenizer=lambda x: x, lowercase=False)
@@ -91,10 +91,13 @@ def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: i
     
     #Output Tuples
     tf_idf_samples = get_output_tuples(tf_idfs, samples)
-    Data_Iterator.write_dataset(tf_idf_samples, f"{d_set}_tf_idf")
+    Data_Iterator.write_dataset(tf_idf_samples, f"{d_set}_tf_idf.pickle")
     return f"{d_set}_tf_idf"
     
-def context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=False):
+def context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
+
+    if remove_cache:
+        os.remove("temp_token*.pickle")
 
     reshaped_clean_samples = first_preprocess(samples)
 
@@ -118,30 +121,30 @@ def context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: st
 
     #Output Tuples
     cont_word_emb_samples = get_output_tuples(cont_w_emb, samples)
-    Data_Iterator.write_dataset(cont_word_emb_samples, f"{d_set}_cont_word_emb")
+    Data_Iterator.write_dataset(cont_word_emb_samples, f"{d_set}_cont_word_emb.pickle")
     return f"{d_set}_cont_word_emb"
     
 
-def non_context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=False):
+def non_context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
     """Description..."""
     import gensim.downloader    
 
     reshaped_clean_samples = first_preprocess(samples)
-    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="tokenize")
+    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="tokenize", remove_cache=remove_cache)
     
     glove_vectors = gensim.downloader.load('word2vec-google-news-300')
     non_cont_w_emb = [sum([glove_vectors[token] for token in text])/len(text) for text in q_and_docs]
     
     #Output Tuples
     cont_word_emb_samples = get_output_tuples(non_cont_w_emb, samples)
-    Data_Iterator.write_dataset(cont_word_emb_samples, f"{d_set}_non_cont_word_emb")
+    Data_Iterator.write_dataset(cont_word_emb_samples, f"{d_set}_non_cont_word_emb.pickle")
     return f"{d_set}_non_cont_word_emb"    
 
 
-def sentence_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=False):
+def sentence_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
     
     reshaped_clean_samples = first_preprocess(samples)
-    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="sentencize")
+    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="sentencize", remove_cache=remove_cache)
 
     tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
     model = BartModel.from_pretrained("facebook/bart-base")
@@ -157,11 +160,11 @@ def sentence_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, n
     
     #Output Tuples
     sent_emb_samples = get_output_tuples(sent_embeddings, samples)
-    Data_Iterator.write_dataset(sent_emb_samples, f"{d_set}_sent_emb")
+    Data_Iterator.write_dataset(sent_emb_samples, f"{d_set}_sent_emb.pickle")
     return f"{d_set}_sent_emb"    
 
     
-def document_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=False):
+def document_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
    
     q_and_docs = first_preprocess(samples)
 
@@ -176,14 +179,6 @@ def document_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, n
     
     #Output Tuples
     doc_emb_samples = get_output_tuples(doc_embeddings, samples)
-    Data_Iterator.write_dataset(doc_emb_samples, f"{d_set}_doc_emb")
+    Data_Iterator.write_dataset(doc_emb_samples, f"{d_set}_doc_emb.pickle")
     return f"{d_set}_doc_emb"  
     
-
-if __name__ == "__main__":
-    samples = Data_Iterator.sample_generator("test", positive=True)
-    generated_samples = []    
-    for sample in tqdm(samples, desc="Load Data"):
-        generated_samples.append(sample)
-    preprocessed_samples = preprocess(generated_samples, num_chunks=5)
-    write_dataset(preprocessed_samples, "test_data.pickle")
