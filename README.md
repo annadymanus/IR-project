@@ -28,7 +28,7 @@ blank_data = pickle.load(open('train_data.pickle', 'rb'))
 Preprocessing.tf_idf(blank_data, "train")
 ```
 The function will then save a file named "train_tf_idf.pickle" which contains a list of (queryID, docID, query_tf_idf, doc_tf_idf, label) tuples.
-If during execution the function causes an error (typically an "out of memory" error or "too long document" error), you can simply execute the function again with the ``` remove_cache = True ``` flag set and it will continue where it stopped last.
+If during execution the function causes an error (typically an "out of memory" error or "too long document" error), you can simply execute the function again with the ``` remove_cache = False ``` flag set and it will continue where it stopped last.
 
 If you e.g. wish to get a data set with average sentence embeddings, you just need to run
 ```python
