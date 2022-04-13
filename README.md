@@ -37,3 +37,5 @@ Preprocessing.sentence_embedding(blank_data, "train")
 ```
 instead. The filename will then be accordingly 'train_sent_emb.pickle' and it will contain a list of (queryID, docID, query_embedding, doc_embedding, label) tuples.
 
+#WARNING
+I could not test the code yet, as I currently dont have access to my desktop computer. My laptop lacks the CPU to run it in reasonable time. The BART model based embeddings (sentence and text embeddings) might take unreasonably long and I should still includ GPU support.
