@@ -19,7 +19,7 @@ At first, create a blank dataset consisting of (queryID, docID, label) tuples by
 ```python
 create_blank_dataset("train")
 ```
-Replace "train" by "dev" or "test" to get your desired dataset. The function will then generate a balanced dataset containing positive and negative samples. The function saves this dataset to a file named "train_data.pickle" (or "dev_data.pickle" or "test_data.pickle" respectively). The randomness in negative labeled data generation is seeded, so don't worry about not ending up with the same data set as the others.
+Replace "train" by "dev" or "test" to get your desired dataset. The function will then generate a balanced dataset containing positive and negative samples. The function saves this dataset to a file named "train_data.pickle" (or "dev_data.pickle" or "test_data.pickle" respectively). The randomness in negative labeled data generation is seeded, so don't worry about not ending up with a different data set as the others.
 
 ## 2. Expand Dataset with Features
 You can use the generated data set as basis to expand it with the feature you want to use in your model. For instance, in order to get a dataset with Tf-Idf vectors, one simply needs to load the blank dataset into ```python Preprocessing.tf_idf()```:
