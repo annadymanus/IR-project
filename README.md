@@ -16,9 +16,9 @@ Github does not allow large files, so I added them to .gitignore. Go sure you ha
 I simplified the data generation process to allow the generation of specific preprocessed data. 
 
 1. At first, create a blank dataset consisting of (queryID, docID, label) tuples by running:
-  ´´´python
+  ```python
   create_blank_dataset("train")
-  ´´´
+  ```
   Replace "train" by "dev" or "test" to get your desired dataset. The function will then generate a balanced dataset containing positive and negative samples. The function saves this dataset to a file named "train_data.pickle" (or "dev_data.pickle" or "test_data.pickle" respectively)
 
 
