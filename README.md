@@ -12,7 +12,7 @@ Go sure following files are in the directory:
 Github does not allow large files, so I added them to .gitignore. Go sure you have them on your local device.
 
 # How to get your DataSet
-I simplified the data generation process to allow the generation of specific preprocessed data. 
+I simplified the data generation process to allow the generation of specific preprocessed data. This had to be done, as otherwise we would have to recreate the data set every time we would want to add a new feature to it. Each feature will now be saved in its own small dataset with (queryID, docID, query_feature, doc_feature, label). You can load multiple of such files, if your model requires it.
 
 ## 1. Generate Blank Dataset
 At first, create a blank dataset consisting of (queryID, docID, label) tuples by running:
@@ -38,4 +38,4 @@ Preprocessing.sentence_embedding(blank_data, "train")
 instead. The filename will then be accordingly 'train_sent_emb.pickle' and it will contain a list of (queryID, docID, query_embedding, doc_embedding, label) tuples.
 
 # WARNING
-I could not test the code yet, as I currently dont have access to my desktop computer. My laptop lacks the CPU to run it in reasonable time. The BART model based embeddings (sentence and text embeddings) might take unreasonably long and I should still includ GPU support.
+I could not test the code yet, as I currently dont have access to my desktop computer. My laptop lacks the CPU to run it in reasonable time. The BART model based embeddings (sentence and text embeddings) might take unreasonably long and I should probably include GPU support.
