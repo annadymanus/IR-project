@@ -1,5 +1,4 @@
-# IR-project
-## Data
+# Data
 Go sure following files are in the directory:    
 - fulldocs-new.trec    
 - msmarco-docdev-qrels.tsv
@@ -12,17 +11,17 @@ Go sure following files are in the directory:
 
 Github does not allow large files, so I added them to .gitignore. Go sure you have them on your local device.
 
-## How to get your DataSet
+# How to get your DataSet
 I simplified the data generation process to allow the generation of specific preprocessed data. 
 
-# 1. Generate Blank Dataset
+## 1. Generate Blank Dataset
 At first, create a blank dataset consisting of (queryID, docID, label) tuples by running:
 ```python
 create_blank_dataset("train")
 ```
 Replace "train" by "dev" or "test" to get your desired dataset. The function will then generate a balanced dataset containing positive and negative samples. The function saves this dataset to a file named "train_data.pickle" (or "dev_data.pickle" or "test_data.pickle" respectively). The randomness in negative labeled data generation is seeded, so don't worry about not ending up with the same data set as the others.
 
-# 2. Expand Dataset with Features
+## 2. Expand Dataset with Features
 You can use the generated data set as basis to expand it with the feature you want to use in your model. For instance, in order to get a dataset with Tf-Idf vectors, one simply needs to load the blank dataset into ```python Preprocessing.tf_idf()```:
 ```python
 blank_data = pickle.load(open('train_data.pickle', 'rb'))
