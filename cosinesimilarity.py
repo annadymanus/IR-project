@@ -1,8 +1,8 @@
 import pickle
 from collections import defaultdict
-import sklearn
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import average_precision_score
+from sklearn.metrics import jaccard_score
 import numpy as np
 
 def create_data_dict(): #create dict {queryid: querytfidf, docid, doctfidf...}
@@ -31,6 +31,23 @@ def compute_cosine_similarity(dict_data):
     with open('cosine_similarity_TEST_results', 'wb') as handle: #save cosinesimilarity results to a file using pickle
         pickle.dump(dict_cosine_val, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+def compute_jaccard(dict_data):
+    dict_jaccard_val = {}
+    for key in dict_data.keys():
+        jaccard_results = []
+        for document in dict_data[key]:  # compute cosine similarity for the query with every document of the query
+            query_tfidf = document[1].reshape(1, -1)  # reshape to "fake" 2Dvector [] --> [[]]
+            docu_tfidf = document[3].reshape(1, -1)  # reshape to "fake" 2Dvector [] --> [[]]
+            query_tokens = set(query_tfidf.lower().split())
+            doc_tokens = set(docu_tfidf.lower().split())
+            jaccard_val = len(query_tokens.intersection(doc_tokens))/len(query_tokens.union(doc_tokens))
+            jaccard_results.append([document[0], jaccard_val, document[-1]])  # add actual label from the input data (important for evaluation metrics)
+        dict_jaccard_val[key] = sorted(jaccard_results, key=lambda x: x[1])  # sort doctuments by their cosine similarity for each key
+
+        print("################## QUEST " + key + " SUCCESFULL ##################")
+    with open('jaccard_TEST_results', 'wb') as handle:  # save cosinesimilarity results to a file using pickle
+        pickle.dump(dict_jaccard_val, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 def get_avg_precision(filename):
     cosine_dict = pickle.load(open(filename, 'rb'))
     avg_prec = 0
@@ -45,4 +62,5 @@ def get_avg_precision(filename):
 if __name__ == "__main__":
     dict_data = create_data_dict()
     compute_cosine_similarity(dict_data)
+    compute_jaccard(dict_data)
     get_avg_precision('cosine_similarity_TEST_results')
