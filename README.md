@@ -24,7 +24,7 @@ Replace "train" by "dev" or "test" to get your desired dataset. The function wil
 ## 2. Expand Dataset with Features
 You can use the generated data set as basis to expand it with the feature you want to use in your model. For instance, in order to get a dataset with Tf-Idf vectors, one simply needs to load the blank dataset into ``` Preprocessing.tf_idf()```:
 ```python
-blank_data = pickle.load(open('train_data.pickle', 'rb'))
+blank_data = Data_Iterator.get_sample_texts('train_data.pickle')
 Preprocessing.tf_idf(blank_data, "train")
 ```
 The function will then save a file named "train_tf_idf.pickle" which contains a list of (queryID, docID, query_tf_idf, doc_tf_idf, label) tuples.
@@ -32,7 +32,7 @@ If during execution the function causes an error (typically an "out of memory" e
 
 If you e.g. wish to get a data set with average sentence embeddings, you just need to run
 ```python
-blank_data = pickle.load(open('train_data.pickle', 'rb'))
+blank_data = Data_Iterator.get_sample_texts('train_data.pickle')
 Preprocessing.sentence_embedding(blank_data, "train")
 ```
 instead. The filename will then be accordingly 'train_sent_emb.pickle' and it will contain a list of (queryID, docID, query_embedding, doc_embedding, label) tuples.
