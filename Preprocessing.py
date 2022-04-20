@@ -142,12 +142,13 @@ def non_context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set
 
 
 def sentence_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     reshaped_clean_samples = first_preprocess(samples)
     q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="sentencize", remove_cache=remove_cache)
 
-    tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
-    model = BartModel.from_pretrained("facebook/bart-base")
+    tokenizer = BartTokenizer.from_pretrained("facebook/bart-base").to(device)
+    model = BartModel.from_pretrained("facebook/bart-base").to(device)
     
     sent_embeddings = []
     for text in q_and_docs:
@@ -155,7 +156,7 @@ def sentence_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, n
         for sent in text:
             tokens = tokenizer(sent, return_tensors="pt", truncation=True)
             tokens = tokens[:1024]
-            embeds.append(model(**tokens).last_hidden_state[0][-1])
+            embeds.append(model(**tokens).last_hidden_state[0][-1].cpu().numpy())
         sent_embeddings.append(sum(embeds)/len(embeds))
     
     #Output Tuples
@@ -165,16 +166,17 @@ def sentence_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, n
 
     
 def document_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
-   
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     q_and_docs = first_preprocess(samples)
 
-    tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
-    model = BartModel.from_pretrained("facebook/bart-base")
+    tokenizer = BartTokenizer.from_pretrained("facebook/bart-base").to(device)
+    model = BartModel.from_pretrained("facebook/bart-base").to(device)
     
     doc_embeddings = []
     for text in q_and_docs:
         tokens = tokenizer(text, return_tensors="pt", truncation=True)
-        doc_emb = model(**tokens).last_hidden_state[0][-1]
+        doc_emb = model(**tokens).last_hidden_state[0][-1].cpu().numpy()
         doc_embeddings.append(doc_emb)
     
     #Output Tuples

@@ -43,7 +43,7 @@ def get_sample_texts(filename: str):
     qtexts = open(qtext_filename, "r", encoding="utf-8")
     docs = open(full_docs_filename, "r", encoding="utf-8")
     
-    query_reader = csv.reader(qtext, delimiter="\t")    
+    query_reader = csv.reader(qtexts, delimiter="\t")    
     for row in query_reader:
         qid = row[0]
         qtext = row[1]
