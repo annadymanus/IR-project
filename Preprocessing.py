@@ -1,5 +1,6 @@
 import Data_Iterator
 import numpy as np
+import torch
 import os.path
 import os
 import pickle
