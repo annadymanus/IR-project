@@ -52,7 +52,7 @@ def first_preprocess(samples: List[Tuple[str,str,str,str,bool]], num_chunks=20):
 def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = True, mode="lemmatize"):
     '''uses spacy to tokenize and lemmatize'''
     if remove_cache:
-        os.remove("temp_token*.pickle")        
+        os.remove("temp_*.pickle")        
 
     raw_texts_list = split(raw_texts, num_chunks)
     for i, chunk in enumerate(raw_texts_list):
@@ -76,6 +76,18 @@ def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = Tr
     for i in tqdm(range(len(raw_texts_list)), desc="Load temp files"):
         q_and_docs.extend(pickle.load(open(f"temp_token_{i}.pickle", "rb" )))
     return q_and_docs
+
+def count_vector(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
+    '''
+    Create Count Vectors for queries and documents.
+    '''
+    reshaped_clean_samples = first_preprocess(samples)
+    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache)
+    
+    #Output Tuples
+    count_vector_samples = get_output_tuples(q_and_docs, samples)
+    Data_Iterator.write_dataset(count_vector_samples, f"{d_set}_count_vector.pickle")
+    return f"{d_set}_count_vector"
 
 def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
     '''
