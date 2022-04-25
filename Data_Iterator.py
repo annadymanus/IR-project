@@ -4,13 +4,14 @@ import random
 from typing import Tuple, List
 import time
 import pickle
+from tqdm import tqdm
 
 
 
-def write_dataset(processeed_samples: List[Tuple], filename: str):
+def write_dataset(data, filename: str):
     """Saves processed_samples to .pickle file"""
     with open(filename, 'wb') as handle:
-        pickle.dump(processeed_samples, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 def get_sample_texts(filename: str):
     """Load dataset with according texts. Yields tuples of shape (qid, docid, query_text, doc_text, label)"""
@@ -32,7 +33,6 @@ def get_sample_texts(filename: str):
             lookups[row[0]] = int(
                 row[1]
             )  # trec format row (row[2] would be for tsv format row)
-    lookups_items = list(lookups.items())
 
     # Load Query Relations into dictionary
     qrels = defaultdict(list)    
@@ -41,10 +41,13 @@ def get_sample_texts(filename: str):
         qrels[pair[0]].append((pair[1], pair[2]))
 
     qtexts = open(qtext_filename, "r", encoding="utf-8")
+    qtexts_len = len(qtexts.readlines())
+    qtexts.seek(0)
+
     docs = open(full_docs_filename, "r", encoding="utf-8")
     
     query_reader = csv.reader(qtexts, delimiter="\t")    
-    for row in query_reader:
+    for row in tqdm(query_reader, total=qtexts_len, desc="Read Texts"):
         qid = row[0]
         qtext = row[1]
 
@@ -79,8 +82,8 @@ def create_blank_dataset(d_set: str):
     else:
         negative_samples = list(sample_generator(d_set, False))
         positive_samples = list(sample_generator(d_set, True))
-        samples = random.shuffle(negative_samples + positive_samples)
-    
+        samples = negative_samples + positive_samples
+        random.shuffle(samples)
     write_dataset(samples, f"{d_set}_data.pickle")
 
 def sample_generator(d_set: str, positive: bool = True) -> Tuple[str, str, bool]:
@@ -101,14 +104,14 @@ def sample_generator(d_set: str, positive: bool = True) -> Tuple[str, str, bool]
         qrels_filename = "qrels-docs.tsv"
     
     #Get all Doc Ids
-    docids = {}
+    docids = []
     with open(docs_lookup_filename, "r", encoding="utf-8") as lookup_file:
         lookup_reader = csv.reader(lookup_file, delimiter="\t")
         for row in lookup_reader:
-            docids.add(row[0])
+            docids.append(row[0])
     
     qrels = open(qrels_filename, "r", encoding="utf-8")  
-    qrels_reader = csv.reader(qrels, delimiter="\t")    
+    qrels_reader = csv.reader(qrels, delimiter=" ")    
     for row in qrels_reader:
         qid = row[0]
         docid = row[2]
