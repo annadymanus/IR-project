@@ -15,6 +15,9 @@ Github does not allow large files, so I added them to .gitignore. Go sure you ha
 I simplified the data generation process to allow the generation of specific preprocessed data. This had to be done, as otherwise we would have to recreate the data set every time we would want to add a new feature to it. Each feature will now be saved in its own small dataset with (queryID, docID, query_feature, doc_feature, label) tuples. You can load multiple of such files, if your model requires it.
 
 ## 1. Generate Blank Dataset
+
+**UPDATE:** I pushed the blank datasets containing the (queryID, docID, label) tuples to the repository. Just to go sure that we are absolutely surely using the same data! You can skip this step and go to **2. Expand Dataset with Features** right away.
+
 At first, create a blank dataset consisting of (queryID, docID, label) tuples by running:
 ```python
 create_blank_dataset("train")
@@ -37,5 +40,5 @@ Preprocessing.sentence_embedding(blank_data, "train")
 ```
 instead. The filename will then be accordingly 'train_sent_emb.pickle' and it will contain a list of (queryID, docID, query_embedding, doc_embedding, label) tuples.
 
-# WARNING
-I could not test the code yet, as I currently dont have access to my desktop computer. My laptop lacks the CPU to run it in reasonable time. The BART model based embeddings (sentence and text embeddings) might take unreasonably long and I should probably include GPU support.
+## Save time with caching
+If you plan to execute a script with ```blank_data = Data_Iterator.get_sample_texts('train_data.pickle')``` more than once, you can save a lot of time by setting ```cache=True```. Be aware though that this will dump a 5.5GB sized file in your directory.
