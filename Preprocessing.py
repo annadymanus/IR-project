@@ -7,15 +7,19 @@ import pickle
 import re
 import spacy
 from fileinput import filename
+import scipy
 from scipy.sparse import csr_matrix
 from sklearn.decomposition import TruncatedSVD
-from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS, CountVectorizer
-from turtle import pos
+from sklearn.feature_extraction.text import TfidfTransformer, ENGLISH_STOP_WORDS, CountVectorizer
 from transformers import BartTokenizer, BartModel
 from tqdm import tqdm
 from typing import Tuple, List
 import glob
+import joblib
 
+
+def identity(x):
+    return x
 
 def split(a, n):
     """Splits list into n equal sized chunks"""
@@ -28,9 +32,13 @@ def get_output_tuples(representation, samples: List[Tuple[str,str,str,str,bool]]
         qid = samples[i][0]
         docid = samples[i][1]
         label = np.array([samples[i][-1]])
-        query_repr = representation[2*i] #extract representarion vector of query
-        doc_repr= representation[2*i+1] #extract representarion vector of document
-        output_tuples.append((qid, docid, query_repr, doc_repr, label))
+        try:
+            query_repr = representation[2*i] #extract representarion vector of query
+            doc_repr= representation[2*i+1] #extract representarion vector of document
+            output_tuples.append((qid, docid, query_repr, doc_repr, label))
+        except IndexError:
+            break
+    return output_tuples
     
 def first_preprocess(samples: List[Tuple[str,str,str,str,bool]], num_chunks=20):
     """ 
@@ -49,7 +57,7 @@ def first_preprocess(samples: List[Tuple[str,str,str,str,bool]], num_chunks=20):
 
     return raw_texts
 
-def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = True, mode="lemmatize"):
+def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = True, mode="lemmatize", as_generator=False):
     '''uses spacy to tokenize and lemmatize'''
     if remove_cache:
         for f in glob.glob("temp_*.pickle"):
@@ -76,30 +84,40 @@ def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = Tr
     del raw_texts
     q_and_docs = []
     for i in tqdm(range(len(raw_texts_list)), desc="Load temp files"):
-        q_and_docs.extend(pickle.load(open(f"temp_{i}.pickle", "rb" )))
-    return q_and_docs
+        if as_generator:
+            yield pickle.load(open(f"temp_{i}.pickle", "rb" ))
+        else:
+            q_and_docs.extend(pickle.load(open(f"temp_{i}.pickle", "rb" )))
+    
+    if not as_generator:
+        return q_and_docs
 
 def count_vector(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
     '''
     Create Count Vectors for queries and documents.
     '''
     reshaped_clean_samples = first_preprocess(samples)
-    samples = [item[:2] for item in samples] #Clear up space
-    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache)    
+    samples = [item[:2] for item in samples] #Clear up space    
 
     #Get Count Vectors
     if d_set == "train":
-        vectorizer = CountVectorizer(tokenizer=lambda x: x, lowercase=False)    
+        q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache)
+        vectorizer = CountVectorizer(tokenizer=identity, lowercase=False)    
         vectorizer.fit(q_and_docs) #returns Sparse Matrix. Each row is a document/query.
-        Data_Iterator.write_dataset(vectorizer, "count_vectorizer.pickle")
+        Data_Iterator.write_dataset(vectorizer, 'count_vectorizer.pickle')        
     
-    vectorizer = pickle.load(open(f"count_vectorizer.pickle", "rb" ))
-    counts = vectorizer.transform(q_and_docs)
-
+    vectorizer = pickle.load(open("count_vectorizer.pickle", "rb" ))
+    counts = None
+    for batch in spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache, as_generator=True):
+        if counts is None:
+            counts = vectorizer.transform(batch)
+        else:
+            counts = scipy.sparse.vstack([counts, vectorizer.transform(batch)])
+    
     #Output Tuples
     count_vector_samples = get_output_tuples(counts, samples)
     Data_Iterator.write_dataset(count_vector_samples, f"{d_set}_count_vector.pickle")
-    return f"{d_set}_count_vector"
+    return f"{d_set}_count_vector.pickle"
 
 def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
     '''
@@ -107,23 +125,48 @@ def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: i
     '''
     reshaped_clean_samples = first_preprocess(samples)
     samples = [item[:2] for item in samples] #Clear up space
-    q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache)
 
     #Get Count Vectors
     if d_set == "train":
-        vectorizer = TfidfVectorizer(tokenizer=lambda x: x, lowercase=False)    
-        vectorizer.fit(q_and_docs) #returns Sparse Matrix. Each row is a document/query.
-        Data_Iterator.write_dataset(vectorizer, "tfidf_vectorizer.pickle")
+        if os.path.isfile('count_vectorizer.pickle'):
+            vectorizer = pickle.load(open("count_vectorizer.pickle", "rb"))
+        else:
+            q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache)            
+            vectorizer = CountVectorizer(tokenizer=identity, lowercase=False)    
+            vectorizer.fit(q_and_docs)
+            Data_Iterator.write_dataset(vectorizer, 'count_vectorizer.pickle')
         
-        tf_idfs = vectorizer.fit_transform(q_and_docs)
+        counts = None
+        for batch in spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache, as_generator=True):
+            if counts is None:
+                counts = vectorizer.transform(batch)
+            else:
+                counts = vstack([counts, vectorizer.transform(batch)])
+        del vectorizer        
+
+        transformer = TfidfTransformer()
+        transformer.fit(counts)
+        Data_Iterator.write_dataset(transformer, 'tfidf_transformer.pickle')
+        tf_idfs = transformer.transform(counts)
+        del transformer        
+
         svd = TruncatedSVD(n_components=100, n_iter=7, random_state=42)
-        tf_idfs = svd.fit(tf_idfs)
-        Data_Iterator.write_dataset(svd, "svd.pickle")
+        svd.fit(tf_idfs)
+        Data_Iterator.write_dataset(svd, "tfidf_svd.pickle")
+        del svd        
     
-    vectorizer = pickle.load(open(f"tfidf_vectorizer.pickle", "rb" ))
-    tf_idfs = vectorizer.transform(q_and_docs)
-    svd = pickle.load(open(f"svd.pickle", "rb" ))
-    tf_idfs = svd.fit_transform(tf_idfs) #reduce dimensionality to 100 elements
+
+    vectorizer = pickle.load(open("count_vectorizer.pickle", "rb" ))
+    transformer = pickle.load(open("tfidf_transformer.pickle", "rb" ))
+    svd = pickle.load(open("tfidf_svd.pickle", "rb" ))
+
+    tf_idfs = None
+    for batch in spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache, as_generator=True):
+        if tf_idfs is None:
+            tf_idfs = svd.transform(transformer.transform(vectorizer.transform(batch)))
+        else:
+            batch_tf_idfs = svd.transform(transformer.transform(vectorizer.transform(batch)))
+            tf_idfs = np.vstack([tf_idfs, batch_tf_idfs])
     
     #Output Tuples
     tf_idf_samples = get_output_tuples(tf_idfs, samples)
@@ -223,9 +266,9 @@ def document_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, n
 if __name__ == "__main__":
     #Data_Iterator.create_blank_dataset("train")
     
-    blank_data = list(Data_Iterator.get_sample_texts('train_data.pickle'))
+    blank_data = Data_Iterator.get_sample_texts('train_data.pickle')
     tf_idf(blank_data, "train", remove_cache=False)
-    count_vector(blank_data, "train", remove_cache=False)
+    #count_vector(blank_data, "train", remove_cache=False)
     #non_context_word_embedding(blank_data, "train", remove_cache=False)
     #context_word_embedding(blank_data, "train")    
     

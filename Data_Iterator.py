@@ -5,6 +5,7 @@ from typing import Tuple, List
 import time
 import pickle
 from tqdm import tqdm
+import os.path
 
 
 
@@ -15,6 +16,11 @@ def write_dataset(data, filename: str):
 
 def get_sample_texts(filename: str):
     """Load dataset with according texts. Yields tuples of shape (qid, docid, query_text, doc_text, label)"""
+
+    cache_file_name = "sample_texts_" + filename
+    if os.path.isfile(cache_file_name):
+        return pickle.load(open(cache_file_name, "rb" ))
+
     docs_lookup_filename = "msmarco-docs-lookup.tsv"
     full_docs_filename = "fulldocs-new.trec"
 
@@ -46,6 +52,7 @@ def get_sample_texts(filename: str):
 
     docs = open(full_docs_filename, "r", encoding="utf-8")
     
+    data = []
     query_reader = csv.reader(qtexts, delimiter="\t")    
     for row in tqdm(query_reader, total=qtexts_len, desc="Read Texts"):
         qid = row[0]
@@ -70,9 +77,11 @@ def get_sample_texts(filename: str):
                     doc_text += line
                 if "<TEXT>" in line:
                     is_text = True
-            yield (qid, docid, qtext, doc_text, label)            
+            data.append((qid, docid, qtext, doc_text, label))                 
     qtexts.close()
     docs.close()
+    write_dataset(data, cache_file_name)    
+    return data
         
 def create_blank_dataset(d_set: str):
     """Creates balanced dataset and saves List of (query id, document id, label) tuples to .pickle file. Parameter "set" can be either "train", "dev" or "test"."""    
