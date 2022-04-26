@@ -1,9 +1,11 @@
 import pickle
 from collections import defaultdict
-import sklearn
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import average_precision_score
 import numpy as np
+from rank_bm25 import BM25Okapi
+import Data_Iterator
+
 
 def create_data_dict(): #create dict {queryid: querytfidf, docid, doctfidf...}
 
@@ -16,7 +18,7 @@ def create_data_dict(): #create dict {queryid: querytfidf, docid, doctfidf...}
         dict_data[data[0]].append(dict_value[1:])
     return dict_data
 
-def compute_cosine_similarity(dict_data):
+def cosine_similarity(dict_data):
     dict_cosine_val = {}
     for key in dict_data.keys():
         cosine_results = []
@@ -42,7 +44,27 @@ def get_avg_precision(filename):
         avg_prec += prec/len(cosine_dict)
     print("AVERAGE PREC: ", avg_prec)
 
+def jaccard_similarity(tuples):
+
+    # Implementing Jaccard algorithm for calculating similarity scores between two texts
+    jaccard_similarity_val = {}
+
+    for tuple in tuples:
+        query = tuple[2] #get the query
+        doc = tuple[3] #get the document
+
+        query_intersection = query.intersection(doc)
+        query_union = query.union(doc)
+        similarity_score = len(query_intersection) / len(query_union)
+        jaccard_similarity_val[tuple[0]] = similarity_score #use the query ID as the dictionary key
+
+    return jaccard_similarity_val
+
 if __name__ == "__main__":
+    blank_data = Data_Iterator.create_blank_dataset('dev')
+    print(type(blank_data))
+    """
     dict_data = create_data_dict()
-    compute_cosine_similarity(dict_data)
+    cosine_similarity(dict_data)
     get_avg_precision('cosine_similarity_TEST_results')
+    """
