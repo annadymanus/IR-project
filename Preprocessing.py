@@ -141,7 +141,7 @@ def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: i
             if counts is None:
                 counts = vectorizer.transform(batch)
             else:
-                counts = vstack([counts, vectorizer.transform(batch)])
+                counts = scipy.sparse.vstack([counts, vectorizer.transform(batch)])
         del vectorizer        
 
         transformer = TfidfTransformer()
@@ -266,8 +266,8 @@ def document_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, n
 if __name__ == "__main__":
     #Data_Iterator.create_blank_dataset("train")
     
-    blank_data = Data_Iterator.get_sample_texts('train_data.pickle')
-    tf_idf(blank_data, "train", remove_cache=False)
+    #blank_data = Data_Iterator.get_sample_texts('train_data.pickle')
+    #tf_idf(blank_data, "train", remove_cache=False)
     #count_vector(blank_data, "train", remove_cache=False)
     #non_context_word_embedding(blank_data, "train", remove_cache=False)
     #context_word_embedding(blank_data, "train")    
