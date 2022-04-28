@@ -14,10 +14,10 @@ def write_dataset(data, filename: str):
     with open(filename, 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-def get_sample_texts(filename: str):
+def get_sample_texts(filename: str, cache=False):
     """Load dataset with according texts. Yields tuples of shape (qid, docid, query_text, doc_text, label)"""
 
-    cache_file_name = "sample_texts_" + filename
+    cache_file_name = "texts_" + filename
     if os.path.isfile(cache_file_name):
         return pickle.load(open(cache_file_name, "rb" ))
 
@@ -80,7 +80,7 @@ def get_sample_texts(filename: str):
             data.append((qid, docid, qtext, doc_text, label))                 
     qtexts.close()
     docs.close()
-    write_dataset(data, cache_file_name)    
+    if cache: write_dataset(data, cache_file_name)    
     return data
         
 def create_blank_dataset(d_set: str):
