@@ -1,3 +1,6 @@
 *.trec
 *.tsv
 *.gz
+*.pickle
+.ipynb_checkpoints
+__pycache__
