@@ -160,7 +160,7 @@ def train(representation, scoring, epochs=2, batch_size=16, bart_emb_type=None):
             optimizer.zero_grad()
 
             outputs = net(inputs1.float(), inputs2.float())
-            loss = criterion(outputs, labels.float().to(device))
+            loss = criterion(outputs.squeeze(), labels.float().to(device))
             loss.backward()
             optimizer.step()
 
@@ -174,7 +174,7 @@ def train(representation, scoring, epochs=2, batch_size=16, bart_emb_type=None):
             net.eval()
             eval_loss = 0.0
             for i, data in enumerate(dev_dataloader):
-                ids, reprs, labels = data
+                ids, reps, labels = data
 
                 if bart_emb_type:
                     reps[0] = get_bart_embeddings(reps[0], bart_emb_type)
@@ -202,7 +202,7 @@ def train(representation, scoring, epochs=2, batch_size=16, bart_emb_type=None):
 
 
                 outputs = net(inputs1.float(), inputs2.float())
-                loss = criterion(outputs, labels)
+                loss = criterion(outputs.squeeze(), labels)
 
                 eval_loss += loss.item()        
             print(f'Epoch {epoch + 1} dev loss: {eval_loss / len(dev_dataloader)}')            
