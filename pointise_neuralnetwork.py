@@ -9,10 +9,6 @@ import itertools
 import numpy as np
 from tqdm import tqdm
 
-def evaluate(ids, scores, labels):
-    """@VITOR: MRR@100 eval function which brings documents for given query into order and compares with true labels"""
-    pass
-
 class Net(nn.Module):
     def __init__(self, input_size, scoring):
         super(Net, self).__init__()
@@ -39,9 +35,19 @@ class PointwiseDataset(Dataset):
     #for the clear representation based 
     def __init__(self, filename, bows_filename=None):
         self.data = pickle.load(open(filename, "rb" ))
+        self.data = [list(elem) for elem in self.data]
+
         self.bows = None
         if bows_filename:
             self.bows = pickle.load(open(bows_filename, "rb" ))
+
+        #Fix empty entries resulting form empty queries/docs
+        for i in range(len(self.data)):
+            if type(self.data[i][2]) is float:               
+                self.data[i][2] = np.zeros(self.data[0][2].size)                
+            if type(self.data[i][3]) is float:               
+                self.data[i][3] = np.zeros(self.data[0][3].size)                
+
 
     def __len__(self):
         return len(self.data)
@@ -49,7 +55,8 @@ class PointwiseDataset(Dataset):
     def __getitem__(self, idx):
         ids = self.data[idx][0:2]
         label = self.data[idx][-1]
-        representations = self.data[idx][2:4]        
+        representations = self.data[idx][2:4]
+
         if self.bows:            
             #Add BOW for naive bayes
             representations = np.concatenate(representations, self.bows[idx])
@@ -106,9 +113,10 @@ def train(representation, scoring, epochs=2, batch_size=16, bart_emb_type=None):
 
             # print statistics
             running_loss += loss.item()
-            if i % 1000 == 1:
+            if i % 1000 == 1 and i > 1000:
                 print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-                running_loss = 0.0        
+                running_loss = 0.0
+        
         
         #Evaluate
         with torch.no_grad():
@@ -139,26 +147,31 @@ def train(representation, scoring, epochs=2, batch_size=16, bart_emb_type=None):
         torch.save(net.state_dict(), f=f'./models/{representation}_pointwise.model')
 
 
-def test(representation, modelfile, scoring):
+
+def test(representation, scoring, batch_size):
     """Gets as input the representation name (e.g. "tf_idf")"""
     
+    
     if scoring:
-        test_dataset = PointwiseDataset(filename = f"test_{representation}.pickle", bows_filename=f"test_count_vector.pickle")
+        test_dataset = PointwiseDataset(filename = f"preprocessed_data/test_{representation}.pickle", bows_filename=f"test_count_vector.pickle")
         vector_size = 3 #Number of scoring functions
+        model_file=f'./models/{representation}_pointwise_scoring.model'
 
     else:
-        test_dataset = PointwiseDataset(filename = f"test_{representation}.pickle")        
-        vector_size = test_dataset.data[0][3].shape[-1] #Get size of representations    
+        test_dataset = PointwiseDataset(filename = f"preprocessed_data/test_{representation}.pickle")        
+        vector_size = test_dataset.data[0][3].shape[-1]  * 2  #Get size of representations
+        model_file=f'./models/{representation}_pointwise.model'
 
-    test_dataloader = DataLoader(test_dataset, batch_size=64)
-    net = Net(vector_size, scoring)
-    net.load_state_dict(torch.load(modelfile))
+
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+    net = Net(vector_size, scoring).to(device)
+    net.load_state_dict(torch.load(model_file))
 
     #Evaluate
 
     #Save here the (queryID, docID), labels and model_score for evaluation
-    ids = []
-    labels = []
+    query_ids = []
+    doc_ids = []
     scores = []
 
     with torch.no_grad():
@@ -177,13 +190,23 @@ def test(representation, modelfile, scoring):
                 repr2 = torch.tensor(reps[1]).to(device)
                 inputs = torch.concat((repr1, repr2), dim=1)            
 
-            outputs = net(inputs)
+            outputs = net(inputs.float())
             outputs = outputs.cpu().numpy()
             
             scores.extend(outputs.squeeze().tolist())
-            labels.extend(labels.squeeze().tolist())
-            ids.extend(ids)
+            query_ids.extend(list(ids[:][0]))
+            doc_ids.extend(list(ids[:][1]))
 
-    evaluate(ids, labels, scores)
+    test_outputs = defaultdict(list)
+    for i in range(len(query_ids)):
+        test_outputs[query_ids[i]].append((doc_ids[i], scores[i]))
+
+    if scoring:
+        filename = f'model_predictions/{representation}_pointwise_scoring_preds.pickle'
+    else:
+        filename = f'model_predictions/{representation}_pointwise_preds.pickle'
+    with open(filename, 'wb') as handle:
+        pickle.dump(test_outputs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 
