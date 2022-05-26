@@ -17,19 +17,19 @@ def write_dataset(data, filename: str):
 def get_sample_texts(filename: str, cache=False):
     """Load dataset with according texts. Yields tuples of shape (qid, docid, query_text, doc_text, label)"""
 
-    cache_file_name = "texts_" + filename
+    cache_file_name = "./data/texts_" + filename
     if os.path.isfile(cache_file_name):
         return pickle.load(open(cache_file_name, "rb" ))
 
-    docs_lookup_filename = "msmarco-docs-lookup.tsv"
-    full_docs_filename = "fulldocs-new.trec"
+    docs_lookup_filename = "./data/msmarco-docs-lookup.tsv"
+    full_docs_filename = "./data/fulldocs-new.trec"
 
     if "train" in filename:
-        qtext_filename = "queries.doctrain.tsv"
+        qtext_filename = "./data/queries.doctrain.tsv"
     elif "dev" in filename:
-        qtext_filename = "queries.docdev.tsv"
+        qtext_filename = "./data/queries.docdev.tsv"
     elif "test" in filename:
-        qtext_filename = "msmarco-test2019-queries.tsv"
+        qtext_filename = "./data/msmarco-test2019-queries.tsv"
 
     # Load Document offsets into dictionary
     lookups = {}
@@ -93,7 +93,7 @@ def create_blank_dataset(d_set: str):
         positive_samples = list(sample_generator(d_set, True))
         samples = negative_samples + positive_samples
         random.shuffle(samples)
-    write_dataset(samples, f"{d_set}_data.pickle")
+    write_dataset(samples, f"./data/{d_set}_data.pickle")
 
 def sample_generator(d_set: str, positive: bool = True) -> Tuple[str, str, bool]:
     """

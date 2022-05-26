@@ -63,11 +63,11 @@ def spacy_tokenize(raw_texts: List[str], num_chunks: int = 20, remove_cache = Tr
 def spacy_tokenize_generator(raw_texts: List[str], num_chunks: int = 20, remove_cache = True, mode="lemmatize"):
     '''uses spacy to tokenize and lemmatize'''
     if remove_cache:
-        for f in glob.glob("temp_*.pickle"):
+        for f in glob.glob("./data/temp_*.pickle"):
             os.remove(f)
     raw_texts_list = split(raw_texts, num_chunks)
     for i, chunk in enumerate(raw_texts_list):
-        if os.path.isfile(f'temp_{i}.pickle'): continue #Just in case stuff crashes.
+        if os.path.isfile(f'./data/temp_{i}.pickle'): continue #Just in case stuff crashes.
         q_and_docs_chunk = []
         nlp = spacy.load("en_core_web_md")
         nlp.max_length = 3000000
@@ -88,12 +88,12 @@ def spacy_tokenize_generator(raw_texts: List[str], num_chunks: int = 20, remove_
             elif mode == "vectorize":
                 q_and_docs_chunk.append([token.vector for token in item])
         del nlp #Free up space asap
-        with open(f'temp_{i}.pickle', 'wb') as handle:
+        with open(f'./data/temp_{i}.pickle', 'wb') as handle:
             pickle.dump(q_and_docs_chunk, handle, protocol=pickle.HIGHEST_PROTOCOL)
     del raw_texts
     q_and_docs = []
     for i in tqdm(range(len(raw_texts_list)), desc="Load temp files"):
-        yield pickle.load(open(f"temp_{i}.pickle", "rb" ))
+        yield pickle.load(open(f"./data/temp_{i}.pickle", "rb" ))
     
 
 def count_vector(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
@@ -109,9 +109,9 @@ def count_vector(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chu
         del reshaped_clean_samples
         vectorizer = CountVectorizer(tokenizer=identity, lowercase=False, max_features=6000, preprocessor=identity)
         vectorizer.fit(q_and_docs) #returns Sparse Matrix. Each row is a document/query.
-        Data_Iterator.write_dataset(vectorizer, 'count_vectorizer.pickle')        
+        Data_Iterator.write_dataset(vectorizer, './data/count_vectorizer.pickle')        
     
-    vectorizer = pickle.load(open("count_vectorizer.pickle", "rb" ))
+    vectorizer = pickle.load(open("./data/count_vectorizer.pickle", "rb" ))
     counts = None
     for batch in spacy_tokenize_generator(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache, num_chunks=num_chunks):
         if counts is None:
@@ -121,8 +121,8 @@ def count_vector(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chu
     
     #Output Tuples
     count_vector_samples = get_output_tuples(counts, samples)
-    Data_Iterator.write_dataset(count_vector_samples, f"{d_set}_count_vector.pickle")
-    return f"{d_set}_count_vector.pickle"
+    Data_Iterator.write_dataset(count_vector_samples, f"./data/{d_set}_count_vector.pickle")
+    return f"./data/{d_set}_count_vector.pickle"
 
 def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
     '''
@@ -133,13 +133,13 @@ def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: i
 
     #Get Count Vectors
     if d_set == "train":
-        if os.path.isfile('count_vectorizer.pickle'):
-            vectorizer = pickle.load(open("count_vectorizer.pickle", "rb"))
+        if os.path.isfile('./data/count_vectorizer.pickle'):
+            vectorizer = pickle.load(open("./data/count_vectorizer.pickle", "rb"))
         else:
             q_and_docs = spacy_tokenize(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache, num_chunks=num_chunks)            
             vectorizer = CountVectorizer(tokenizer=identity, lowercase=False)    
             vectorizer.fit(q_and_docs)
-            Data_Iterator.write_dataset(vectorizer, 'count_vectorizer.pickle')
+            Data_Iterator.write_dataset(vectorizer, './data/count_vectorizer.pickle')
         
         counts = None
         for batch in spacy_tokenize_generator(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache, num_chunks=num_chunks):
@@ -151,18 +151,18 @@ def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: i
 
         transformer = TfidfTransformer()
         transformer.fit(counts)
-        Data_Iterator.write_dataset(transformer, 'tfidf_transformer.pickle')
+        Data_Iterator.write_dataset(transformer, './data/tfidf_transformer.pickle')
         tf_idfs = transformer.transform(counts)
         del transformer        
 
         svd = TruncatedSVD(n_components=100, n_iter=7, random_state=42)
         svd.fit(tf_idfs)
-        Data_Iterator.write_dataset(svd, "tfidf_svd.pickle")
+        Data_Iterator.write_dataset(svd, "./data/tfidf_svd.pickle")
         del svd        
 
-    vectorizer = pickle.load(open("count_vectorizer.pickle", "rb" ))
-    transformer = pickle.load(open("tfidf_transformer.pickle", "rb" ))
-    svd = pickle.load(open("tfidf_svd.pickle", "rb" ))
+    vectorizer = pickle.load(open("./data/count_vectorizer.pickle", "rb" ))
+    transformer = pickle.load(open("./data/tfidf_transformer.pickle", "rb" ))
+    svd = pickle.load(open("./data/tfidf_svd.pickle", "rb" ))
 
     tf_idfs = None
     for batch in spacy_tokenize_generator(reshaped_clean_samples, mode="lemmatize", remove_cache=remove_cache, num_chunks=num_chunks):
@@ -174,12 +174,11 @@ def tf_idf(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: i
     
     #Output Tuples
     tf_idf_samples = get_output_tuples(tf_idfs, samples)
-    Data_Iterator.write_dataset(tf_idf_samples, f"{d_set}_tf_idf.pickle")
-    return f"{d_set}_tf_idf"
+    Data_Iterator.write_dataset(tf_idf_samples, f"./data/{d_set}_tf_idf.pickle")
+    return f"./data/{d_set}_tf_idf.pickle"
     
 
 def non_context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set: str, num_chunks: int = 20, remove_cache=True):
-    """Description..."""
     import gensim.downloader
     glove_vectors = gensim.downloader.load('word2vec-google-news-300')
 
@@ -193,8 +192,8 @@ def non_context_word_embedding(samples: List[Tuple[str,str,str,str,bool]], d_set
     
     #Output Tuples
     cont_word_emb_samples = get_output_tuples(non_cont_w_emb, samples)
-    Data_Iterator.write_dataset(cont_word_emb_samples, f"{d_set}_non_cont_word_emb.pickle")
-    return f"{d_set}_non_cont_word_emb"
+    Data_Iterator.write_dataset(cont_word_emb_samples, f"./data/{d_set}_non_cont_word_emb.pickle")
+    return f"./data/{d_set}_non_cont_word_emb.pickle"
 
 
 def bart_tokenize(samples: List[Tuple[str,str,str,str,bool]], d_set: str):
@@ -211,12 +210,12 @@ def bart_tokenize(samples: List[Tuple[str,str,str,str,bool]], d_set: str):
 
     dataset = [(item["input_ids"], item["attention_mask"]) for item in dataset]
     tokenized_samples = get_output_tuples(dataset, samples)
-    Data_Iterator.write_dataset(tokenized_samples, f"{d_set}_bart_tokenized.pickle")
-    return f"{d_set}_bart_tokenized.pickle"
+    Data_Iterator.write_dataset(tokenized_samples, f"./data/{d_set}_bart_tokenized.pickle")
+    return f"./data/{d_set}_bart_tokenized.pickle"
 
 if __name__ == "__main__":
     #Data_Iterator.create_blank_dataset("test")    
-    blank_data = Data_Iterator.get_sample_texts('test_data.pickle')
+    blank_data = Data_Iterator.get_sample_texts('./data/test_data.pickle')
     #tf_idf(blank_data, "test", remove_cache=False, num_chunks=3)
     count_vector(blank_data, "test", remove_cache=False, num_chunks=3)
     #non_context_word_embedding(blank_data, "test", remove_cache=False, num_chunks=3)    
