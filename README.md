@@ -42,3 +42,9 @@ instead. The filename will then be accordingly 'train_sent_emb.pickle' and it wi
 
 ## Save time with caching
 If you plan to execute a script with ```blank_data = Data_Iterator.get_sample_texts('train_data.pickle')``` more than once, you can save a lot of time by setting ```cache=True```. Be aware though that this will dump a 5.5GB sized file in your directory.
+
+# Run Models
+Set the desired parameters in the first cell of the [PointwNN](PointwNN.ipynb) or [PairwNN](PairwNN.ipynb) Jupyter-Notebook and run the notebook. The trained models will be saved in [./models](./models) and the model predictions will be saved in [./model_predictions](./model_predictions)
+
+# Evaluate
+You can now go ahead and run the [model_metrics notebook](model_metrics.ipynb), which will calculate and display the evaluation metrics of the various models.
