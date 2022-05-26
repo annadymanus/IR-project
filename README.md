@@ -1,5 +1,5 @@
 # Data
-Go sure following files are in the directory:    
+Go sure following files are in the  ./data/ directory:    
 - fulldocs-new.trec    
 - msmarco-docdev-qrels.tsv
 - msmarco-docs-lookup.tsv
