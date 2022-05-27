@@ -1,7 +1,7 @@
 # INFORMATION RETRIEVAL PROJECT
 
 ## Data
-Data comes from the [MARCO TREC 2020 DEEP LEARNING TRACK Competion](https://microsoft.github.io/msmarco/TREC-Deep-Learning-2020)
+Data comes from the [MARCO TREC 2020 DEEP LEARNING TRACK Competition](https://microsoft.github.io/msmarco/TREC-Deep-Learning-2020)
 
 Go sure following files are in the  [./data/](./data/) directory:    
 - fulldocs-new.trec    
