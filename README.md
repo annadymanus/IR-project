@@ -1,4 +1,9 @@
+## INFORMATION RETRIEVAL PROJECT
+
 # Data
+Data comes from the MARCO TREC 2020 DEEP LEARNING TRACK Competion:
+https://microsoft.github.io/msmarco/TREC-Deep-Learning-2020
+
 Go sure following files are in the  [./data/](./data/) directory:    
 - fulldocs-new.trec    
 - msmarco-docdev-qrels.tsv
@@ -48,3 +53,10 @@ Set the desired parameters in the first cell of the [PointwNN](PointwNN.ipynb) o
 
 # Evaluate
 You can now go ahead and run the [model_metrics notebook](model_metrics.ipynb), which will calculate and display the evaluation metrics of the various models.
+
+## TEAM MEMBERS:
+@annadymanus
+@vitor-faria
+@VincentNg5
+@nationsync
+@RoyalFireStorm
